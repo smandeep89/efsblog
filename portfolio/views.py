@@ -38,6 +38,23 @@ def customer_edit(request, pk):
        form = CustomerForm(instance=customer)
    return render(request, 'portfolio/customer_edit.html', {'form': form})
 
+@login_required
+def customer_new(request):
+   if request.method == "POST":
+       form = CustomerForm(request.POST)
+       if form.is_valid():
+           customer = form.save(commit=False)
+           customer.created_date = timezone.now()
+           customer.save()
+           customers = Customer.objects.filter(created_date__lte=timezone.now())
+           return render(request, 'portfolio/customer_list.html',
+                         {'customers': customers})
+   else:
+       form = CustomerForm()
+       # print("Else")
+   return render(request, 'portfolio/customer_new.html', {'form': form})
+
+
 
 @login_required
 def customer_delete(request, pk):
@@ -136,7 +153,7 @@ def investment_edit(request, pk):
            investment.updated_date = timezone.now()
            investment.save()
            investments = Investment.objects.filter(acquired_date__lte=timezone.now())
-           return render(request, 'portfolio/investment_list.html', {'investment': investment})
+           return render(request, 'portfolio/investment_list.html', {'investment': investment, 'investments': investments})
    else:
        # print("else")
        form = InvestmentForm(instance=investment)
