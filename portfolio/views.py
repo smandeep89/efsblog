@@ -5,6 +5,10 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from .forms import *
 from django.db.models import Sum
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import CustomerSerializer
 
 
 
@@ -160,8 +164,20 @@ def investment_edit(request, pk):
    return render(request, 'portfolio/investment_edit.html', {'form': form})
 
 
+def portfolio(request):
+    customers = Customer.objects.filter(created_date__lte=timezone.now())
+    investments = Investment.objects.all()
+    stocks = Stock.objects.all()
+    sum_recent_value = Investment.objects.all().aggregate(Sum('recent_value'))
+    sum_acquired_value = Investment.objects.all().aggregate(Sum('acquired_value'))
+    sum_purchase_price = Stock.objects.all().aggregate(Sum('purchase_price'))
 
-
+    return render(request, 'customers/portfolio.html', {'customers': customers, 'investments': investments,
+                                                        'stocks': stocks,
+                                                        'sum_recent_value': sum_recent_value,
+                                                        'sum_acquired_value': sum_acquired_value,
+                                                        'sum_purchase_price': sum_purchase_price,
+                                                        })
 
 @login_required
 def portfolio(request,pk):
@@ -169,9 +185,22 @@ def portfolio(request,pk):
    customers = Customer.objects.filter(created_date__lte=timezone.now())
    investments =Investment.objects.filter(customer=pk)
    stocks = Stock.objects.filter(customer=pk)
+   sum_recent_value = Investment.objects.all().aggregate(Sum('recent_value'))
    sum_acquired_value = Investment.objects.filter(customer=pk).aggregate(Sum('acquired_value'))
+   sum_purchase_price = Stock.objects.all().aggregate(Sum('purchase_price'))
 
 
-   return render(request, 'portfolio/portfolio.html', {'customers': customers, 'investments': investments,
-                                                      'stocks': stocks,
-                                                      'sum_acquired_value': sum_acquired_value,})
+   return render(request, 'portfolio/portfolio.html', {'customers': customers,
+                                                       'investments': investments,
+                                                       'stocks': stocks,
+                                                       'sum_acquired_value': sum_acquired_value,
+                                                       'sum_recent_value': sum_recent_value,
+                                                       'sum_purchase_price': sum_purchase_price,
+                                                       })
+
+class CustomerList(APIView):
+
+    def get(self,request):
+        customers_json = Customer.objects.all()
+        serializer = CustomerSerializer(customers_json, many=True)
+        return Response(serializer.data)
